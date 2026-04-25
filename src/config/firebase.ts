@@ -1,7 +1,6 @@
-
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -13,19 +12,19 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-// Funkcija za bezbednu inicijalizaciju
 const isConfigValid = !!firebaseConfig.apiKey && firebaseConfig.apiKey !== "your_api_key_here";
 
 let app;
 if (isConfigValid) {
     app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 } else {
-    // Mock app objekat da sprečimo krah ostatka koda
     app = { options: {}, name: "[DEFAULT]" } as any;
     console.warn("Edu-Flash: Firebase ključevi nisu pronađeni. Aplikacija radi u MOCK modu.");
 }
 
 export const auth = isConfigValid ? getAuth(app) : ({} as any);
-export const db = isConfigValid ? getFirestore(app) : ({} as any);
+export const db = isConfigValid ? initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+}) : ({} as any);
 export const storage = isConfigValid ? getStorage(app) : ({} as any);
 export { isConfigValid };

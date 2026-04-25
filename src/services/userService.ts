@@ -23,21 +23,33 @@ export const userService = {
   // Create or get user profile
   ensureProfile: async (uid: string, email: string): Promise<UserProfile> => {
     const userRef = doc(db, "users", uid);
-    const snap = await getDoc(userRef);
-    
-    if (!snap.exists()) {
-      const newProfile: UserProfile = {
+    try {
+      const snap = await getDoc(userRef);
+      
+      if (!snap.exists()) {
+        const newProfile: UserProfile = {
+          uid,
+          email,
+          plan: 'free',
+          solvesRemaining: FREE_DAILY_LIMIT,
+          lastReset: serverTimestamp()
+        };
+        await setDoc(userRef, newProfile);
+        return newProfile;
+      }
+      
+      return snap.data() as UserProfile;
+    } catch (err: any) {
+      console.error("Firestore Error in ensureProfile:", err);
+      // Ako je offline, vratimo fallback profile da aplikacija ne krahira
+      return {
         uid,
         email,
         plan: 'free',
-        solvesRemaining: FREE_DAILY_LIMIT,
-        lastReset: serverTimestamp()
+        solvesRemaining: 5,
+        lastReset: new Date()
       };
-      await setDoc(userRef, newProfile);
-      return newProfile;
     }
-    
-    return snap.data() as UserProfile;
   },
 
   // Check and decrement quota
