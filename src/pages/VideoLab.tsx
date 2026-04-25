@@ -14,6 +14,7 @@ import {
 import { apiService } from '../services/apiService';
 import { cn } from '../utils/cn';
 import { VideoAnalysis } from '../types';
+import { useUser } from '../contexts/UserContext';
 
 export const VideoLab = () => {
   const [url, setUrl] = useState("");
@@ -27,8 +28,9 @@ export const VideoLab = () => {
     return videoIdMatch?.[1];
   };
 
+  const { user: authUser } = useUser();
   const handleAnalyze = async () => {
-    if (!url.trim()) return;
+    if (!url.trim() || !authUser) return;
     const videoId = getYouTubeId(url);
     if (!videoId) {
         setError("Invalid YouTube URL. Please use a standard video link.");
@@ -40,7 +42,7 @@ export const VideoLab = () => {
     setAnalysis(null);
     
     try {
-        const userId = 'user123';
+        const userId = authUser.uid;
         const result = await apiService.processVideoWithAI(userId, url);
         setAnalysis(result);
         

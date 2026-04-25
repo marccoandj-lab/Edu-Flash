@@ -27,13 +27,18 @@ interface SettingSection {
   items: SettingItem[];
 }
 
+import { useUser } from '../contexts/UserContext';
+import { authService } from '../services/authService';
+
 export const Settings = () => {
+  const { profile } = useUser();
+
   const sections: SettingSection[] = [
     {
       title: "Profile",
       items: [
-        { icon: User, label: "Personal Info", value: "Marko Petrović", type: "link", path: "/settings" },
-        { icon: CreditCard, label: "Subscription", value: "Pro Plan", type: "link", highlight: true, path: "/pricing" },
+        { icon: User, label: "Personal Info", value: profile?.displayName || "Student", type: "link", path: "/settings" },
+        { icon: CreditCard, label: "Subscription", value: profile?.plan === 'pro' ? "Pro Plan" : "Free Plan", type: "link", highlight: true, path: "/pricing" },
       ]
     },
     {
@@ -52,6 +57,11 @@ export const Settings = () => {
     }
   ];
 
+  const handleLogout = async () => {
+    await authService.logout();
+    window.location.href = '/auth';
+  };
+
   return (
     <div className="w-full max-w-2xl mx-auto pb-20 px-2 sm:px-6 lg:px-10">
       <div className="mb-12 text-center lg:text-left flex flex-col items-center lg:items-start">
@@ -63,8 +73,8 @@ export const Settings = () => {
                 <Plus size={20} strokeWidth={3} />
             </button>
         </div>
-        <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tighter uppercase italic leading-tight">Marko Petrović</h2>
-        <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mt-3 bg-white/5 px-6 py-2 rounded-full border border-white/10 shadow-inner max-w-full truncate">marko.p@example.com</p>
+        <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tighter uppercase italic leading-tight">{profile?.displayName || 'Student'}</h2>
+        <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.3em] mt-3 bg-white/5 px-6 py-2 rounded-full border border-white/10 shadow-inner max-w-full truncate">{profile?.email || 'student@example.com'}</p>
       </div>
 
       <div className="space-y-8 sm:space-y-12">
@@ -111,7 +121,10 @@ export const Settings = () => {
           </div>
         ))}
 
-        <button className="w-full mt-10 py-6 sm:py-8 bg-white/5 text-white rounded-[2.5rem] sm:rounded-[3rem] font-black uppercase tracking-[0.4em] flex items-center justify-center gap-4 hover:bg-rose-500/20 hover:text-rose-100 transition-all active:scale-[0.98] border border-white/10 shadow-2xl">
+        <button 
+          onClick={handleLogout}
+          className="w-full mt-10 py-6 sm:py-8 bg-white/5 text-white rounded-[2.5rem] sm:rounded-[3rem] font-black uppercase tracking-[0.4em] flex items-center justify-center gap-4 hover:bg-rose-500/20 hover:text-rose-100 transition-all active:scale-[0.98] border border-white/10 shadow-2xl"
+        >
           <LogOut size={24} />
           Log Out
         </button>

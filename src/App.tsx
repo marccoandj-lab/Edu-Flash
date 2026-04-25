@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Sidebar, Header, BottomNav } from './components/Navigation';
 import { cn } from './utils/cn';
 import { authService } from './services/authService';
@@ -19,12 +19,15 @@ import { Onboarding } from './pages/Onboarding';
 import { Auth } from './pages/Auth';
 import { AnimatePresence, motion } from 'framer-motion';
 
+import { useUser } from './contexts/UserContext';
+
 const PageWrapper = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
+  const { profile } = useUser();
   
   const getTitle = (path: string) => {
     switch (path) {
-      case '/': return 'Hello, Marko';
+      case '/': return `Hello, ${profile?.displayName || 'Student'}`;
       case '/library': return 'My Library';
       case '/assistant': return 'AI Assistant';
       case '/solver': return 'Solver Hub';
@@ -64,57 +67,51 @@ const PageWrapper = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+import { UserProvider } from './contexts/UserContext';
+
+import { RequireAuth } from './components/RequireAuth';
+
 function App() {
   const [onboarded, setOnboarded] = React.useState<boolean | null>(null);
 
   React.useEffect(() => {
     const isLocal = localStorage.getItem('edu_onboarded') === 'true';
     setOnboarded(isLocal);
-    
-    // Auto-redirect if not onboarded and not already on the page
-    if (!isLocal && window.location.pathname !== '/onboarding') {
-      window.location.pathname = '/onboarding';
-    }
-    
-    const unsubscribe = authService.onAuthChange((user) => {
-      if (user && user.emailVerified) {
-         // User is logged in and verified
-      } else if (isLocal && window.location.pathname !== '/auth' && window.location.pathname !== '/onboarding') {
-         // Not logged in or verified, but saw onboarding -> go to auth
-         window.location.pathname = '/auth';
-      }
-    });
-
-    return () => unsubscribe && unsubscribe();
   }, []);
 
-  if (onboarded === null && window.location.pathname !== '/onboarding' && window.location.pathname !== '/auth') {
+  if (onboarded === null) {
     return <div className="h-screen bg-[var(--background)]" />;
   }
 
   return (
-    <Router>
-      <PageWrapper>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/library" element={<Library />} />
-          <Route path="/assistant" element={<AIAssistant />} />
-          <Route path="/solver" element={<Solver />} />
-          <Route path="/video-lab" element={<VideoLab />} />
-          <Route path="/upload" element={<Upload />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/help" element={<HelpCenter />} />
-          <Route path="/quiz" element={<Quiz />} />
-          <Route path="/tutor" element={<TutorChat />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="*" element={<Dashboard />} />
-        </Routes>
-      </PageWrapper>
-    </Router>
+    <UserProvider>
+      <Router>
+        <PageWrapper>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+
+            {/* Protected Routes */}
+            <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
+            <Route path="/library" element={<RequireAuth><Library /></RequireAuth>} />
+            <Route path="/assistant" element={<RequireAuth><AIAssistant /></RequireAuth>} />
+            <Route path="/solver" element={<RequireAuth><Solver /></RequireAuth>} />
+            <Route path="/video-lab" element={<RequireAuth><VideoLab /></RequireAuth>} />
+            <Route path="/upload" element={<RequireAuth><Upload /></RequireAuth>} />
+            <Route path="/pricing" element={<RequireAuth><Pricing /></RequireAuth>} />
+            <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
+            <Route path="/help" element={<RequireAuth><HelpCenter /></RequireAuth>} />
+            <Route path="/quiz" element={<RequireAuth><Quiz /></RequireAuth>} />
+            <Route path="/tutor" element={<RequireAuth><TutorChat /></RequireAuth>} />
+            
+            <Route path="*" element={<Navigate to={onboarded ? "/" : "/onboarding"} replace />} />
+          </Routes>
+        </PageWrapper>
+      </Router>
+    </UserProvider>
   );
 }
 

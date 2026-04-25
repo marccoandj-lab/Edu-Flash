@@ -41,8 +41,8 @@ export const apiService = {
         const local = localStorage.getItem('edu_user');
         if (!local) {
             const defaultUser: User = {
-                uid: 'user123', email: 'student@example.com', displayName: 'Marko P.',
-                plan: 'pro', api_calls_limit: 500, api_calls_used: 0, api_calls_left: 500,
+                uid: 'default', email: 'student@example.com', displayName: 'Student',
+                plan: 'freemium', api_calls_limit: 5, api_calls_used: 0, api_calls_left: 5,
                 api_calls_total_used: 0, streak: 0, last_activity_date: null,
                 last_reset_date: new Date().toISOString(), created_at: new Date().toISOString(),
                 wins: 0, games_played: 0, total_capital: 0, character_usage: {}

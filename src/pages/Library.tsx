@@ -27,7 +27,10 @@ import { Flashcard, AIAnalysis } from '../types';
 import { cn } from '../utils/cn';
 import { useNavigate } from 'react-router-dom';
 
+import { useUser } from '../contexts/UserContext';
+
 export const Library = () => {
+  const { user: authUser } = useUser();
   const navigate = useNavigate();
   const [tab, setTab] = useState<'flashcards' | 'analyses'>('flashcards');
   const [cards, setCards] = useState<Flashcard[]>([]);
@@ -53,8 +56,9 @@ export const Library = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!authUser) return;
       try {
-        const userId = 'user123';
+        const userId = authUser.uid;
         const [cardsData, analysesData] = await Promise.all([
           apiService.getFlashcards(userId),
           apiService.getAnalyses(userId)

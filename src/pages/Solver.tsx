@@ -18,7 +18,7 @@ import imageCompression from 'browser-image-compression';
 import { apiService } from '../services/apiService';
 import { cn } from '../utils/cn';
 import { MathRenderer } from '../components/MathRenderer';
-import 'katex/dist/katex.min.css';
+import { useUser } from '../contexts/UserContext';
 
 interface SolvedProblem {
     id: string;
@@ -57,11 +57,12 @@ export const Solver = () => {
 
   const { getRootProps, getInputProps } = useDropzone({ onDrop, accept: { 'image/*': [] }, multiple: false });
 
+  const { user: authUser } = useUser();
   const handleSolve = async () => {
-    if (!input && !preview) return;
+    if ((!input && !preview) || !authUser) return;
     setIsProcessing(true);
     try {
-        const userId = 'user123';
+        const userId = authUser.uid;
         const result = await apiService.solveProblemWithAI(userId, input, preview || undefined);
         setSolution(result);
         

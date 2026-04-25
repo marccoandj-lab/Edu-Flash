@@ -22,7 +22,7 @@ import imageCompression from 'browser-image-compression';
 import { apiService } from '../services/apiService';
 import { cn } from '../utils/cn';
 import { MathRenderer } from '../components/MathRenderer';
-import 'katex/dist/katex.min.css';
+import { useUser } from '../contexts/UserContext';
 import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
 
@@ -134,14 +134,15 @@ export const AIAssistant = () => {
       setQueue((prev: QueueItem[]) => prev.filter((item: QueueItem) => item.id !== id));
   };
 
+  const { user: authUser } = useUser();
   const handleAnalyze = async () => {
-    if (queue.length === 0) return;
+    if (queue.length === 0 || !authUser) return;
     setIsProcessing(true);
     setError(null);
     let combinedResults = "";
 
     try {
-      const userId = 'user123';
+      const userId = authUser.uid;
       for (let i = 0; i < queue.length; i++) {
           setProcessingIndex(i);
           const item = queue[i];

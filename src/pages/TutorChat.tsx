@@ -13,6 +13,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { apiService } from '../services/apiService';
 import { ChatMessage } from '../types';
 import { cn } from '../utils/cn';
+import { useUser } from '../contexts/UserContext';
 import { MathRenderer } from '../components/MathRenderer';
 import 'katex/dist/katex.min.css';
 
@@ -42,8 +43,9 @@ export const TutorChat = () => {
         scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }, [messages]);
 
+    const { user: authUser } = useUser();
     const handleSend = async () => {
-        if (!input.trim() || isTyping) return;
+        if (!input.trim() || isTyping || !authUser) return;
 
         const userMsg: ChatMessage = { role: 'user', content: input, timestamp: new Date().toISOString() };
         setMessages(prev => [...prev, userMsg]);
@@ -51,7 +53,7 @@ export const TutorChat = () => {
         setIsTyping(true);
 
         try {
-            const userId = 'user123';
+            const userId = authUser.uid;
             const response = await apiService.chatWithTutor(userId, input, context, messages);
             setMessages(prev => [...prev, {
                 role: 'assistant',

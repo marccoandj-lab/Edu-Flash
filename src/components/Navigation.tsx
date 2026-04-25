@@ -111,7 +111,11 @@ export const BottomNav = () => {
   );
 };
 
+import { useUser } from '../contexts/UserContext';
+
 export const Header = ({ title }: { title: string }) => {
+  const { profile } = useUser();
+
   return (
     <header className="h-20 lg:h-24 sticky top-0 z-40 px-6 lg:px-10 flex items-center justify-between bg-[var(--background)]/90 backdrop-blur-xl">
       <div>
@@ -123,8 +127,10 @@ export const Header = ({ title }: { title: string }) => {
         </button>
         <div className="flex items-center gap-3 pl-2 lg:pl-5 border-l border-white/10">
           <div className="hidden md:block text-right">
-            <p className="text-xs font-black text-white">Marko Petrović</p>
-            <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest leading-none mt-1">Premium</p>
+            <p className="text-xs font-black text-white">{profile?.displayName || 'Student'}</p>
+            <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest leading-none mt-1">
+              {profile?.plan === 'pro' ? 'Premium' : 'Free'}
+            </p>
           </div>
           <div className="w-11 h-11 lg:w-12 lg:h-12 rounded-2xl bg-white text-[var(--background)] shadow-inner flex items-center justify-center overflow-hidden transition-all">
              <UserIcon size={24} fill="currentColor" />

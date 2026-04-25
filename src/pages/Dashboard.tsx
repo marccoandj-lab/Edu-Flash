@@ -22,8 +22,10 @@ import { User, Flashcard } from '../types';
 import { cn } from '../utils/cn';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
+import { useUser } from '../contexts/UserContext';
+
 export const Dashboard = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user: authUser, profile } = useUser();
   const [cards, setCards] = useState<Flashcard[]>([]);
   const [masteryData, setMasteryData] = useState({ total: 0, mastered: 0 });
   const [loading, setLoading] = useState(true);
@@ -36,33 +38,13 @@ export const Dashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!authUser) return;
       try {
-        const userId = 'user123';
-        const [userData, cardsData, analysesData] = await Promise.all([
-          apiService.getUser(userId),
+        const userId = authUser.uid;
+        const [cardsData, analysesData] = await Promise.all([
           apiService.getFlashcards(userId),
           apiService.getAnalyses(userId)
         ]);
-        
-        const fetchedUser: User = userData || {
-            uid: 'user123',
-            email: 'student@example.com',
-            displayName: 'Marko P.',
-            plan: 'pro',
-            api_calls_limit: 500,
-            api_calls_used: 0,
-            api_calls_left: 500,
-            api_calls_total_used: 0,
-            streak: 0,
-            last_activity_date: null,
-            last_reset_date: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-            wins: 0,
-            games_played: 0,
-            total_capital: 0,
-            character_usage: {}
-        };
-        setUser(fetchedUser);
         
         const fetchedCards = (cardsData as Flashcard[]) || [];
         setCards(fetchedCards);
@@ -118,7 +100,7 @@ export const Dashboard = () => {
   ];
 
   const hasCards = cards.length > 0;
-  const maxQuota = user?.plan === 'pro' ? 500 : 50;
+  const maxQuota = profile?.plan === 'pro' ? 1000 : 5;
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-8 md:space-y-12 pb-10">
@@ -132,17 +114,16 @@ export const Dashboard = () => {
                   <Flame size={28} className="sm:size-10 text-white fill-current" />
               </div>
               <div className="min-w-0">
-                  <h3 className="text-2xl sm:text-4xl font-black text-white italic tracking-tighter truncate">{user?.streak || 0} Days</h3>
+                  <h3 className="text-2xl sm:text-4xl font-black text-white italic tracking-tighter truncate">{profile?.streak || 0} Days</h3>
                   <p className="text-white/40 font-bold text-[9px] sm:text-[10px] uppercase tracking-widest mt-1">Study Streak</p>
               </div>
               <Sparkles size={100} className="absolute -right-4 -top-4 text-white/5 pointer-events-none" />
           </motion.div>
-
           {/* Stats Grid */}
           <section className="flex-[2] grid grid-cols-2 gap-3 sm:gap-6">
             {[
               { label: 'Cards', value: cards.length || 0, icon: Layers, path: '/library', unit: '' },
-              { label: 'Quota', value: user?.api_calls_left || 0, icon: Zap, path: '/pricing', unit: ` / ${maxQuota}` },
+              { label: 'Quota', value: profile?.solvesRemaining || 0, icon: Zap, path: '/pricing', unit: ` / ${maxQuota}` },
             ].map((stat: any, i: number) => (
               <Link key={stat.label} to={stat.path} className="block min-w-0">
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}

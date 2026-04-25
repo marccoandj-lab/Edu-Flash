@@ -13,6 +13,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { apiService } from '../services/apiService';
 import { cn } from '../utils/cn';
+import { useUser } from '../contexts/UserContext';
 
 export const Quiz = () => {
     const navigate = useNavigate();
@@ -24,15 +25,17 @@ export const Quiz = () => {
     const [isFinished, setIsFinished] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    const { user: authUser } = useUser();
     useEffect(() => {
         const loadQuiz = async () => {
+            if (!authUser) return;
             const text = location.state?.text;
             if (!text) {
                 navigate('/library');
                 return;
             }
             try {
-                const userId = 'user123';
+                const userId = authUser.uid;
                 const data = await apiService.startQuiz(userId, text);
                 setQuestions(data);
             } catch (err) {

@@ -18,7 +18,7 @@ export const authService = {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       await sendEmailVerification(userCredential.user);
-      await userService.ensureProfile(userCredential.user.uid, email);
+      await userService.ensureProfile(userCredential.user.uid, email, userCredential.user.displayName);
       return userCredential.user;
     } catch (err: any) {
       throw new Error(err.message);
@@ -33,7 +33,7 @@ export const authService = {
       if (!userCredential.user.emailVerified) {
         throw new Error("Molimo verifikujte vaš email pre logovanja. Proverite inbox.");
       }
-      await userService.ensureProfile(userCredential.user.uid, email);
+      await userService.ensureProfile(userCredential.user.uid, email, userCredential.user.displayName);
       return userCredential.user;
     } catch (err: any) {
       throw new Error(err.message);
@@ -46,7 +46,7 @@ export const authService = {
     try {
       const provider = new GoogleAuthProvider();
       const userCredential = await signInWithPopup(auth, provider);
-      await userService.ensureProfile(userCredential.user.uid, userCredential.user.email || "");
+      await userService.ensureProfile(userCredential.user.uid, userCredential.user.email || "", userCredential.user.displayName);
       return userCredential.user;
     } catch (err: any) {
       throw new Error(err.message);
