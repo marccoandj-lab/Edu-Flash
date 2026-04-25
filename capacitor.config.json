@@ -1,0 +1,7 @@
+
+{
+  "appId": "com.eduflash.app",
+  "appName": "Edu-Flash",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}
