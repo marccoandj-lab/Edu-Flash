@@ -94,6 +94,7 @@ function App() {
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="/refund" element={<RefundPolicy />} />
+            <Route path="/pricing" element={<Pricing />} />
 
             {/* Protected Routes */}
             <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
@@ -102,7 +103,6 @@ function App() {
             <Route path="/solver" element={<RequireAuth><Solver /></RequireAuth>} />
             <Route path="/video-lab" element={<RequireAuth><VideoLab /></RequireAuth>} />
             <Route path="/upload" element={<RequireAuth><Upload /></RequireAuth>} />
-            <Route path="/pricing" element={<RequireAuth><Pricing /></RequireAuth>} />
             <Route path="/settings" element={<RequireAuth><Settings /></RequireAuth>} />
             <Route path="/help" element={<RequireAuth><HelpCenter /></RequireAuth>} />
             <Route path="/quiz" element={<RequireAuth><Quiz /></RequireAuth>} />

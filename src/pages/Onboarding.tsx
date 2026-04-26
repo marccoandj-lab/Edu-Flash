@@ -13,7 +13,7 @@ import {
   Layers,
   GraduationCap
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { cn } from '../utils/cn';
 
 function CheckCircle2({ size, className }: { size: number, className?: string }) {
@@ -133,8 +133,8 @@ export const Onboarding = () => {
                   </div>
               ))}
           </div>
-          <button className="w-full py-3 bg-white text-[#1e3a8a] rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl mb-3">Get Started Now</button>
-          <button className="w-full py-2 text-white/30 hover:text-white transition-colors font-black text-[8px] uppercase tracking-widest">Continue with free plan</button>
+          <button onClick={() => navigate('/auth')} className="w-full py-3 bg-white text-[#1e3a8a] rounded-xl font-black text-[10px] uppercase tracking-widest shadow-xl mb-3">Get Started Now</button>
+          <button onClick={() => navigate('/auth')} className="w-full py-2 text-white/30 hover:text-white transition-colors font-black text-[8px] uppercase tracking-widest">Continue with free plan</button>
         </div>
       )
     }
@@ -219,6 +219,14 @@ export const Onboarding = () => {
           >
             Skip Intro
           </button>
+          
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-2 text-[8px] sm:text-[9px] text-white/40 uppercase tracking-widest font-black">
+            <Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link>
+            <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+            <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+            <Link to="/refund" className="hover:text-white transition-colors">Refund Policy</Link>
+            <a href="mailto:support@edu-flash.com" className="hover:text-white transition-colors">Contact: support@edu-flash.com</a>
+          </div>
         </div>
       </div>
 

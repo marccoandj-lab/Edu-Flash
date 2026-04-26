@@ -2,16 +2,28 @@ import React, { useEffect } from 'react';
 import { Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { paddleService } from '../services/paddleService';
+import { useUser } from '../contexts/UserContext';
+import { useNavigate } from 'react-router-dom';
 
 export const Pricing = () => {
+  const { user } = useUser();
+  const navigate = useNavigate();
   useEffect(() => {
     paddleService.initialize();
   }, []);
 
   const handleUpgrade = (planName: string) => {
     if (planName === 'Pro') {
+      if (!user) {
+        navigate('/auth');
+        return;
+      }
       const productId = import.meta.env.VITE_PADDLE_PRO_PRODUCT_ID || "12345";
-      paddleService.openCheckout(productId, "user@example.com");
+      paddleService.openCheckout(productId, user.email || "student@edu-flash.com");
+    } else {
+      if (!user) {
+        navigate('/auth');
+      }
     }
   };
 
