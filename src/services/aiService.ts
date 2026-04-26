@@ -20,6 +20,11 @@ const VISION_MODELS = [
 ];
 
 const callGroqAPI = async (payload: any) => {
+  if (auth.currentUser) {
+    const hasTokens = await userService.hasTokens(auth.currentUser.uid);
+    if (!hasTokens) throw new Error("Potrošili ste sve API tokene. Molimo pređite na PRO plan.");
+  }
+
   const res = await fetch('/api/groq', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -29,7 +34,14 @@ const callGroqAPI = async (payload: any) => {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || err.details || "Greška pri komunikaciji sa serverom.");
   }
-  return res.json();
+  
+  const completion = await res.json();
+  
+  if (auth.currentUser && completion.usage?.total_tokens) {
+    userService.deductTokens(auth.currentUser.uid, completion.usage.total_tokens).catch(console.error);
+  }
+  
+  return completion;
 };
 
 const normalizeCards = (data: any): AIResponse[] => {
@@ -143,12 +155,6 @@ export const generateFlashcardsWithGroq = async (imageBase64: string): Promise<A
 
 export const analyzeContent = async (mode: 'summarize' | 'expand', data: { imageBase64?: string, text?: string }): Promise<{ content: string, category: string }> => {
 
-  // Check Quota
-  if (auth.currentUser) {
-    const hasQuota = await userService.useQuota(auth.currentUser.uid);
-    if (!hasQuota) throw new Error("Iskoristili ste dnevni limit za besplatan plan. Pređite na PRO za neograničen pristup.");
-  }
-
   const system = `You are a world-class academic assistant specializing in content analysis.
   Return strictly JSON: {"category": "...", "content": "..."}.
   Respond EXCLUSIVELY in the same language as the input text.
@@ -225,12 +231,6 @@ export const generateQuizFromContent = async (text: string): Promise<any[]> => {
 };
 
 export const solveProblem = async (problem: string, imageBase64?: string): Promise<string> => {
-    // Check Quota
-    if (auth.currentUser) {
-        const hasQuota = await userService.useQuota(auth.currentUser.uid);
-        if (!hasQuota) throw new Error("Iskoristili ste dnevni limit za besplatan plan. Pređite na PRO za neograničen pristup.");
-    }
-    
     const systemPrompt = `You are an elite Academic Solver with a PhD in Mathematics and Physics.
     Your goal is to provide 100% accurate, rigorous, and verified solutions.
 

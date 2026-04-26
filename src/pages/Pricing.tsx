@@ -21,7 +21,7 @@ export const Pricing = () => {
       price: '$0',
       description: 'Perfect for casual learners.',
       features: [
-        '50 AI calls per month',
+        '250,000 API Tokens (~50 docs)',
         'Basic Q&A flashcards',
         'Auto Language detection',
         'PWA Support (Offline)',
@@ -37,7 +37,7 @@ export const Pricing = () => {
       period: '/mo',
       description: 'For serious students and super-learning.',
       features: [
-        '500 AI calls per month',
+        '2.5M API Tokens (~500 docs)',
         'Detailed Flashcards (Llama 4)',
         'Unlimited cards per scan',
         'Full Offline mode & Sync',

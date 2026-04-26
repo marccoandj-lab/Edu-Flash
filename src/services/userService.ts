@@ -14,11 +14,15 @@ export interface UserProfile {
   displayName: string;
   plan: 'freemium' | 'pro';
   solvesRemaining: number;
+  tokensRemaining?: number;
+  streak?: number;
   lastReset: any;
 }
 
 const FREE_DAILY_LIMIT = 5;
 const PRO_DAILY_LIMIT = 1000;
+const FREE_MONTHLY_TOKENS = 250000;
+const PRO_MONTHLY_TOKENS = 2500000;
 
 export const userService = {
   // Create or get user profile
@@ -38,13 +42,23 @@ export const userService = {
           displayName: finalName,
           plan: 'freemium',
           solvesRemaining: FREE_DAILY_LIMIT,
+          tokensRemaining: FREE_MONTHLY_TOKENS,
           lastReset: serverTimestamp()
         };
         await setDoc(userRef, newProfile);
         return newProfile;
       }
       
-      return snap.data() as UserProfile;
+      const data = snap.data() as UserProfile;
+      
+      // Automatska migracija postojećih korisnika na token sistem
+      if (data.tokensRemaining === undefined) {
+         const initialTokens = data.plan === 'pro' ? PRO_MONTHLY_TOKENS : FREE_MONTHLY_TOKENS;
+         await updateDoc(userRef, { tokensRemaining: initialTokens });
+         data.tokensRemaining = initialTokens;
+      }
+      
+      return data;
     } catch (err: any) {
       console.error("Firestore Error in ensureProfile:", err);
       return {
@@ -53,30 +67,35 @@ export const userService = {
         displayName: displayName || "Student",
         plan: 'freemium',
         solvesRemaining: 5,
+        tokensRemaining: FREE_MONTHLY_TOKENS,
         lastReset: new Date()
       };
     }
   },
 
-  // Check and decrement quota
-  useQuota: async (uid: string): Promise<boolean> => {
+  // Check if has tokens
+  hasTokens: async (uid: string): Promise<boolean> => {
     const userRef = doc(db, "users", uid);
     const snap = await getDoc(userRef);
-    
     if (!snap.exists()) return false;
     
     const data = snap.data() as UserProfile;
+    if (data.tokensRemaining === undefined) return true; // Ako još nije migriran
     
-    // Simple daily reset logic (could be more robust with actual timestamp check)
-    // For now, if solvesRemaining > 0, allow and decrement
-    if (data.solvesRemaining > 0) {
+    return data.tokensRemaining > 0;
+  },
+
+  // Deduct actual tokens used
+  deductTokens: async (uid: string, amount: number): Promise<void> => {
+    if (!amount || amount <= 0) return;
+    const userRef = doc(db, "users", uid);
+    try {
       await updateDoc(userRef, {
-        solvesRemaining: increment(-1)
+        tokensRemaining: increment(-amount)
       });
-      return true;
+    } catch (err) {
+      console.error("Error deducting tokens:", err);
     }
-    
-    return false;
   },
 
   // Upgrade user
@@ -84,7 +103,8 @@ export const userService = {
     const userRef = doc(db, "users", uid);
     await updateDoc(userRef, {
       plan: 'pro',
-      solvesRemaining: PRO_DAILY_LIMIT
+      solvesRemaining: PRO_DAILY_LIMIT,
+      tokensRemaining: PRO_MONTHLY_TOKENS
     });
   }
 };

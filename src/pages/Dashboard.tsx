@@ -100,7 +100,14 @@ export const Dashboard = () => {
   ];
 
   const hasCards = cards.length > 0;
-  const maxQuota = profile?.plan === 'pro' ? 1000 : 5;
+  const maxTokens = profile?.plan === 'pro' ? 2500000 : 250000;
+  const currentTokens = profile?.tokensRemaining !== undefined ? profile.tokensRemaining : maxTokens;
+  
+  const formatTokens = (num: number) => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(0) + 'k';
+    return num.toString();
+  };
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-8 md:space-y-12 pb-10">
@@ -123,7 +130,7 @@ export const Dashboard = () => {
           <section className="flex-[2] grid grid-cols-2 gap-3 sm:gap-6">
             {[
               { label: 'Cards', value: cards.length || 0, icon: Layers, path: '/library', unit: '' },
-              { label: 'Quota', value: profile?.solvesRemaining || 0, icon: Zap, path: '/pricing', unit: ` / ${maxQuota}` },
+              { label: 'Tokens', value: formatTokens(currentTokens), icon: Zap, path: '/pricing', unit: ` / ${formatTokens(maxTokens)}` },
             ].map((stat: any, i: number) => (
               <Link key={stat.label} to={stat.path} className="block min-w-0">
                 <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
