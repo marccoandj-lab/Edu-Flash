@@ -9,7 +9,7 @@ import { Pricing } from './pages/Pricing';
 import { Settings } from './pages/Settings';
 import { Library } from './pages/Library';
 import { AIAssistant } from './pages/AIAssistant';
-import { PrivacyPolicy, TermsOfService } from './pages/Legal';
+import { PrivacyPolicy, TermsOfService, RefundPolicy } from './pages/Legal';
 import { HelpCenter } from './pages/HelpCenter';
 import { Quiz } from './pages/Quiz';
 import { TutorChat } from './pages/TutorChat';
@@ -93,6 +93,7 @@ function App() {
             <Route path="/auth" element={<Auth />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/refund" element={<RefundPolicy />} />
 
             {/* Protected Routes */}
             <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />

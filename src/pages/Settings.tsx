@@ -8,7 +8,8 @@ import {
   ShieldCheck, 
   HelpCircle, 
   Plus, 
-  FileText 
+  FileText,
+  RefreshCcw
 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { Link } from 'react-router-dom';
@@ -53,6 +54,7 @@ export const Settings = () => {
       items: [
         { icon: HelpCircle, label: "Help Center", type: "link", path: "/help" },
         { icon: FileText, label: "Terms of Service", type: "link", path: "/terms" },
+        { icon: RefreshCcw, label: "Refund Policy", type: "link", path: "/refund" },
       ]
     }
   ];

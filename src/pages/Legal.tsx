@@ -65,3 +65,24 @@ export const TermsOfService = () => (
         </section>
     </PageLayout>
 );
+
+export const RefundPolicy = () => (
+    <PageLayout title="Refund Policy" icon={FileText}>
+        <section>
+            <h3 className="text-white text-xl font-black uppercase mb-4 tracking-tight">1. Refund Eligibility</h3>
+            <p>We offer a 14-day money-back guarantee for all new subscriptions. If you are not satisfied with Edu-Flash within the first 14 days of your initial purchase, you are eligible for a full refund.</p>
+        </section>
+        <section>
+            <h3 className="text-white text-xl font-black uppercase mb-4 tracking-tight">2. Non-Refundable Items</h3>
+            <p>Renewal payments and API token top-ups are non-refundable. If you wish to cancel your subscription, please do so before your next billing cycle to avoid being charged.</p>
+        </section>
+        <section>
+            <h3 className="text-white text-xl font-black uppercase mb-4 tracking-tight">3. How to Request a Refund</h3>
+            <p>To request a refund, please contact our support team through the Help Center. Include your account email address and the reason for your refund request.</p>
+        </section>
+        <section>
+            <h3 className="text-white text-xl font-black uppercase mb-4 tracking-tight">4. Processing Time</h3>
+            <p>Approved refunds are processed immediately, but it may take 5-10 business days for the funds to appear on your original payment method, depending on your bank.</p>
+        </section>
+    </PageLayout>
+);
