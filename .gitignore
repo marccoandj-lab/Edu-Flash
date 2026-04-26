@@ -34,3 +34,4 @@ dist-ssr
 .firebase
 
 .vercel
+vercel-keys.txt

@@ -1,5 +1,4 @@
 
-import Groq from "groq-sdk";
 import { auth } from "../config/firebase";
 import { userService } from "./userService";
 import { YoutubeTranscript } from 'youtube-transcript';
@@ -20,10 +19,17 @@ const VISION_MODELS = [
     "meta-llama/llama-4-scout-17b-16e-instruct"
 ];
 
-const getGroqClient = () => {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-  if (!apiKey || apiKey === "your_groq_api_key_here") return null;
-  return new Groq({ apiKey, dangerouslyAllowBrowser: true });
+const callGroqAPI = async (payload: any) => {
+  const res = await fetch('/api/groq', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || err.details || "Greška pri komunikaciji sa serverom.");
+  }
+  return res.json();
 };
 
 const normalizeCards = (data: any): AIResponse[] => {
@@ -69,8 +75,6 @@ export const fetchVideoMetadata = async (url: string): Promise<{title: string, a
 };
 
 export const analyzeYouTubeVideo = async (url: string): Promise<VideoAnalysis> => {
-    const groq = getGroqClient();
-    if (!groq) throw new Error("Groq API Key not found.");
 
     let transcript = await fetchYouTubeTranscript(url);
     const metadata = await fetchVideoMetadata(url);
@@ -86,7 +90,7 @@ export const analyzeYouTubeVideo = async (url: string): Promise<VideoAnalysis> =
         systemInstruction = "I couldn't extract the transcript, but here is the video title. Use your internal knowledge to provide a high-level summary and general educational flashcards related to this topic.";
     }
 
-    const res = await groq.chat.completions.create({
+    const res = await callGroqAPI({
       model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: `${systemInstruction} Odgovaraj SAMO validnim JSON-om.` },
@@ -115,9 +119,7 @@ ${contentToAnalyze}`
 };
 
 export const generateFlashcardsFromText = async (text: string): Promise<AIResponseBatch> => {
-  const groq = getGroqClient();
-  if (!groq) throw new Error("Groq API Key not found.");
-  const completion = await groq.chat.completions.create({
+  const completion = await callGroqAPI({
     messages: [{ role: "system", content: "Extract info into flashcards & category. Return JSON: {\"category\": \"...\", \"flashcards\": [{\"question\": \"...\", \"answer\": \"...\"}]}. Same language as input." }, { role: "user", content: `Text: ${text.substring(0, 15000)}` }],
     model: "llama-3.3-70b-versatile", temperature: 0.1, response_format: { type: "json_object" }
   });
@@ -126,11 +128,9 @@ export const generateFlashcardsFromText = async (text: string): Promise<AIRespon
 };
 
 export const generateFlashcardsWithGroq = async (imageBase64: string): Promise<AIResponseBatch> => {
-  const groq = getGroqClient();
-  if (!groq) throw new Error("Groq API Key not found.");
   for (const modelId of VISION_MODELS) {
     try {
-      const completion = await groq.chat.completions.create({
+      const completion = await callGroqAPI({
         messages: [{ role: "user", content: [{ type: "text", text: "Analyze image for flashcards & category. Return JSON: {\"category\": \"...\", \"flashcards\": [{\"question\": \"...\", \"answer\": \"...\"}]}. Same language." }, { type: "image_url", image_url: { url: imageBase64 } }]}],
         model: modelId, temperature: 0.1, response_format: { type: "json_object" }
       });
@@ -142,8 +142,6 @@ export const generateFlashcardsWithGroq = async (imageBase64: string): Promise<A
 };
 
 export const analyzeContent = async (mode: 'summarize' | 'expand', data: { imageBase64?: string, text?: string }): Promise<{ content: string, category: string }> => {
-  const groq = getGroqClient();
-  if (!groq) throw new Error("Groq API Key not found.");
 
   // Check Quota
   if (auth.currentUser) {
@@ -177,7 +175,7 @@ export const analyzeContent = async (mode: 'summarize' | 'expand', data: { image
   const prompt = mode === 'summarize' ? summarizePrompt : expandPrompt;
 
   if (!data.imageBase64) {
-      const completion = await groq.chat.completions.create({
+      const completion = await callGroqAPI({
         messages: [{ role: "system", content: system }, { role: "user", content: `${prompt}\n\nContent to analyze:\n${data.text}` }],
         model: "llama-3.3-70b-versatile", temperature: 0.3, response_format: { type: "json_object" }
       });
@@ -187,7 +185,7 @@ export const analyzeContent = async (mode: 'summarize' | 'expand', data: { image
 
   for (const modelId of VISION_MODELS) {
       try {
-          const completion = await groq.chat.completions.create({
+          const completion = await callGroqAPI({
             messages: [{ role: "user", content: [{ type: "text", text: `${prompt}\n${system}` }, { type: "image_url", image_url: { url: data.imageBase64 } }]}],
             model: modelId, temperature: 0.3, response_format: { type: "json_object" }
           });
@@ -199,8 +197,6 @@ export const analyzeContent = async (mode: 'summarize' | 'expand', data: { image
 };
 
 export const askTutor = async (question: string, context: string, history: any[]): Promise<string> => {
-    const groq = getGroqClient();
-    if (!groq) throw new Error("Groq SDK not ready.");
     const cleanedHistory = history.map(({ role, content }) => ({ role, content }));
     try {
         const systemPrompt = `You are a professional study tutor. Provide clear, accurate, and pedagogical help.
@@ -209,7 +205,7 @@ export const askTutor = async (question: string, context: string, history: any[]
         - Block: $$ ... $$
         Context from document: ${context.substring(0, 10000)}`;
 
-        const completion = await groq.chat.completions.create({
+        const completion = await callGroqAPI({
             messages: [{ role: "system", content: systemPrompt }, ...cleanedHistory, { role: "user", content: question }],
             model: "llama-3.3-70b-versatile", temperature: 0.5,
         });
@@ -218,10 +214,8 @@ export const askTutor = async (question: string, context: string, history: any[]
 };
 
 export const generateQuizFromContent = async (text: string): Promise<any[]> => {
-    const groq = getGroqClient();
-    if (!groq) throw new Error("Groq SDK not ready.");
     try {
-        const completion = await groq.chat.completions.create({
+        const completion = await callGroqAPI({
             messages: [{ role: "system", content: "Generate 5 MCQ quiz in JSON: {\"quiz\": [{\"question\": \"...\", \"options\": [...], \"correctAnswer\": \"...\"}]}. Same language." }, { role: "user", content: `Text: ${text.substring(0, 10000)}` }],
             model: "llama-3.3-70b-versatile", temperature: 0.2, response_format: { type: "json_object" }
         });
@@ -231,9 +225,6 @@ export const generateQuizFromContent = async (text: string): Promise<any[]> => {
 };
 
 export const solveProblem = async (problem: string, imageBase64?: string): Promise<string> => {
-    const groq = getGroqClient();
-    if (!groq) throw new Error("Groq SDK not ready.");
-
     // Check Quota
     if (auth.currentUser) {
         const hasQuota = await userService.useQuota(auth.currentUser.uid);
@@ -267,7 +258,7 @@ export const solveProblem = async (problem: string, imageBase64?: string): Promi
         let lastError = "";
         for (const modelId of VISION_MODELS) {
             try {
-                const ocrCompletion = await groq.chat.completions.create({
+                const ocrCompletion = await callGroqAPI({
                     messages: [
                         { role: "system", content: "You are an expert OCR assistant. Transcribe the mathematical/logical problem from the image EXACTLY as it appears. Include symbols and formulas. Do not solve it." },
                         { role: "user", content: [
@@ -294,7 +285,7 @@ export const solveProblem = async (problem: string, imageBase64?: string): Promi
 
     // Step 2: Solve the extracted text using the 2026 Flagship Reasoning Model
     try {
-        const completion = await groq.chat.completions.create({
+        const completion = await callGroqAPI({
             messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: problemText }
