@@ -232,83 +232,81 @@ export const generateQuizFromContent = async (text: string): Promise<any[]> => {
 };
 
 export const solveProblem = async (problem: string, imageBase64?: string): Promise<string> => {
-    const systemPrompt = `You are a world-class Mathematical Reasoning Engine.
-    Your goal is to provide 100% mathematically correct solutions with crystal-clear formatting.
+    const systemPrompt = `You are a world-class Reasoning Engine for Mathematics, Physics, and Chemistry.
+    Your goal is to provide 100% accurate, high-fidelity solutions with premium formatting.
 
     REASONING PROTOCOL:
-    1. ANALYZE: Break down the input. Identify exactly what is being asked.
-    2. SOLVE TWICE: Solve the problem using two different mental approaches.
-    3. VERIFY: Cross-check the two results. If they differ, find the error.
-    4. FINAL CHECK: Plug the answer back into the original problem to ensure it works perfectly.
-
-    STRICT FORMATTING RULES:
-    1. LaTeX ONLY: Use standard LaTeX for ALL mathematical symbols.
-       - Inline: $ ... $
-       - Block: $$ ... $$ (always on separate lines)
-       - Use \\dfrac instead of \\frac for better readability in complex expressions.
-    2. NO UNICODE: Never use √, /, −, or other unicode math symbols. Use \\sqrt{}, \\dfrac{}{}, -, etc.
-    3. ALIGNED BLOCKS: For multi-step calculations, use $$ \\begin{aligned} ... \\end{aligned} $$.
-    4. STRUCTURE:
-       ## 🎯 Analiza zadatka
-       ## 📜 Ključne formule
-       ## ✍️ Postupak rešavanja (Detaljno objašnjeno)
-       ## 🏁 Rezultat i provera
-    5. ACCURACY: Precision is more important than speed. If you are not 100% sure, explain your reasoning and potential edge cases.
-    6. LANGUAGE: Respond in the SAME LANGUAGE as the problem description (e.g., if problem is in Serbian, respond in Serbian).`;
+    1. ANALYZE: Identify the core subject (Math, Physics, or Chemistry) and the specific problem.
+    2. SOLVE: Use first principles and step-by-step logical deduction.
+    3. VERIFY: Double-check calculations and conceptual consistency.
     
-    let problemText = problem;
-
-    if (imageBase64) {
-        let extracted = "";
-        let ocrError = null;
-
-        for (const modelId of VISION_MODELS) {
-            try {
-                const ocrCompletion = await callGroqAPI({
-                    messages: [
-                        { role: "user", content: [
-                            { 
-                              type: "text", 
-                              text: "You are a professional Math OCR Engine. Transcribe the mathematical problem from this image into clean, standard LaTeX. Output ONLY the LaTeX code. No conversation. No explanations. Just the math formula(s)." 
-                            },
-                            { type: "image_url", image_url: { url: imageBase64 } }
-                        ]}
-                    ],
-                    model: modelId,
-                    temperature: 0,
-                    max_tokens: 1024
-                });
-                
-                const content = ocrCompletion.choices[0]?.message?.content?.trim() || "";
-                if (content && content.length > 2) {
-                    extracted = content;
-                    break;
-                }
-            } catch (e: any) {
-                ocrError = e.message;
-                console.error(`OCR failed for model ${modelId}:`, e);
-            }
-        }
-
-        if (!extracted) {
-            throw new Error(`Nažalost, nisam uspeo da pročitam zadatak sa slike. ${ocrError ? `Detalji: ${ocrError}` : "Pokušajte sa jasnijom slikom ili unesite zadatak ručno."}`);
-        }
-
-        problemText = `ZADATAK SA SLIKE (LaTeX): ${extracted}\n\nDODATNI OPIS/KONTEKST: ${problem}`;
-    }
+    STRICT FORMATTING RULES:
+    1. LaTeX ONLY: Use standard LaTeX for ALL mathematical symbols, chemical equations, and physical units.
+       - Inline: $ ... $
+       - Block: $$ ... $$ (on separate lines)
+       - Use \\dfrac for better readability.
+       - For Chemistry: Use \\ce{...} if possible, or standard LaTeX subscripts.
+    2. STRUCTURE:
+       ## 🎯 Analiza zadatka
+       ## 📜 Teorijske osnove i formule
+       ## ✍️ Postupak rešavanja (Detaljan i postupan)
+       ## 🏁 Konačan rezultat i zaključak
+    3. LANGUAGE: Respond in the SAME LANGUAGE as the input. If the problem is in Serbian, respond in Serbian.
+    4. ACCURACY: Be extremely precise. If a problem is missing data, state it clearly.`;
 
     try {
+        let messages: any[] = [{ role: "system", content: systemPrompt }];
+
+        if (imageBase64) {
+            messages.push({
+                role: "user",
+                content: [
+                    { type: "text", text: `Please solve this problem from the image. Use the Reasoning Protocol. Additional context: ${problem}` },
+                    { type: "image_url", image_url: { url: imageBase64 } }
+                ]
+            });
+        } else {
+            messages.push({
+                role: "user",
+                content: `Please solve this problem: ${problem}`
+            });
+        }
+
+        // Try the strongest vision-capable model first for direct solving
+        const modelId = imageBase64 ? "llama-3.2-90b-vision-preview" : "llama-3.3-70b-versatile";
+
         const completion = await callGroqAPI({
-            messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: `Solve this problem with absolute precision. Use the Reasoning Protocol to ensure the answer is correct:\n\n${problemText}` }
-            ],
-            model: "llama-3.3-70b-versatile", // Using a reliable high-reasoning model
+            messages,
+            model: modelId,
             temperature: 0,
+            max_tokens: 2048
         });
-        
+
         return completion.choices[0]?.message?.content || "Nažalost, nisam uspeo da generišem rešenje.";
     } catch (err: any) {
-        throw new Error(`Greška pri rešavanju zadatka. Detalji: ${err?.message}`);
+        // If 90b fails (Rate Limit), try 11b as a fallback
+        if (imageBase64 && (err.message.includes('429') || err.message.includes('Rate Limit'))) {
+            try {
+                const fallback = await callGroqAPI({
+                    messages: [
+                        { role: "system", content: systemPrompt },
+                        { 
+                          role: "user", 
+                          content: [
+                            { type: "text", text: `Solve this problem: ${problem}` },
+                            { type: "image_url", image_url: { url: imageBase64 } }
+                          ]
+                        }
+                    ],
+                    model: "llama-3.2-11b-vision-preview",
+                    temperature: 0,
+                    max_tokens: 2048
+                });
+                return fallback.choices[0]?.message?.content || "Nažalost, rešenje nije generisano.";
+            } catch (innerErr) {
+                throw new Error("Svi AI modeli su trenutno zauzeti. Pokušajte ponovo za minut.");
+            }
+        }
+        throw new Error(`Greška pri rešavanju: ${err?.message}`);
     }
 };
