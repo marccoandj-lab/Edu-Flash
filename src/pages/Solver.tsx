@@ -48,7 +48,8 @@ export const Solver = () => {
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
-    const options = { maxSizeMB: 0.5, maxWidthOrHeight: 1024, useWebWorker: true };
+    // Aggressive compression for stability
+    const options = { maxSizeMB: 0.2, maxWidthOrHeight: 800, useWebWorker: true };
     const compressed = await imageCompression(file, options);
     const reader = new FileReader();
     reader.onloadend = () => setPreview(reader.result as string);

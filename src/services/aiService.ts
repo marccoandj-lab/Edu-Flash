@@ -232,81 +232,49 @@ export const generateQuizFromContent = async (text: string): Promise<any[]> => {
 };
 
 export const solveProblem = async (problem: string, imageBase64?: string): Promise<string> => {
-    const systemPrompt = `You are a world-class Reasoning Engine for Mathematics, Physics, and Chemistry.
-    Your goal is to provide 100% accurate, high-fidelity solutions with premium formatting.
-
-    REASONING PROTOCOL:
-    1. ANALYZE: Identify the core subject (Math, Physics, or Chemistry) and the specific problem.
-    2. SOLVE: Use first principles and step-by-step logical deduction.
-    3. VERIFY: Double-check calculations and conceptual consistency.
+    const systemPrompt = `You are an elite academic AI specializing in STEM. 
+    Your mission is to provide 100% accurate, step-by-step solutions for Math, Physics, and Chemistry.
     
-    STRICT FORMATTING RULES:
-    1. LaTeX ONLY: Use standard LaTeX for ALL mathematical symbols, chemical equations, and physical units.
-       - Inline: $ ... $
-       - Block: $$ ... $$ (on separate lines)
-       - Use \\dfrac for better readability.
-       - For Chemistry: Use \\ce{...} if possible, or standard LaTeX subscripts.
-    2. STRUCTURE:
-       ## 🎯 Analiza zadatka
-       ## 📜 Teorijske osnove i formule
-       ## ✍️ Postupak rešavanja (Detaljan i postupan)
-       ## 🏁 Konačan rezultat i zaključak
-    3. LANGUAGE: Respond in the SAME LANGUAGE as the input. If the problem is in Serbian, respond in Serbian.
-    4. ACCURACY: Be extremely precise. If a problem is missing data, state it clearly.`;
+    STRICT RULES:
+    1. Use LaTeX for ALL formulas, units, and equations ($...$ for inline, $$...$$ for blocks).
+    2. Use \\ce{...} for Chemistry.
+    3. Provide a clear structure with headers (##).
+    4. Language: Same as input.
+    5. Be extremely detailed in steps.`;
 
-    try {
-        let messages: any[] = [{ role: "system", content: systemPrompt }];
+    const maxRetries = 3;
+    let lastErr = "";
 
-        if (imageBase64) {
-            messages.push({
-                role: "user",
-                content: [
-                    { type: "text", text: `Please solve this problem from the image. Use the Reasoning Protocol. Additional context: ${problem}` },
-                    { type: "image_url", image_url: { url: imageBase64 } }
-                ]
-            });
-        } else {
-            messages.push({
-                role: "user",
-                content: `Please solve this problem: ${problem}`
-            });
-        }
-
-        // Try the strongest vision-capable model first for direct solving
-        const modelId = imageBase64 ? "llama-3.2-90b-vision-preview" : "llama-3.3-70b-versatile";
-
-        const completion = await callGroqAPI({
-            messages,
-            model: modelId,
-            temperature: 0,
-            max_tokens: 2048
-        });
-
-        return completion.choices[0]?.message?.content || "Nažalost, nisam uspeo da generišem rešenje.";
-    } catch (err: any) {
-        // If 90b fails (Rate Limit), try 11b as a fallback
-        if (imageBase64 && (err.message.includes('429') || err.message.includes('Rate Limit'))) {
-            try {
-                const fallback = await callGroqAPI({
-                    messages: [
-                        { role: "system", content: systemPrompt },
-                        { 
-                          role: "user", 
-                          content: [
+    for (let i = 0; i < maxRetries; i++) {
+        try {
+            const modelId = imageBase64 ? (i === 0 ? "llama-3.2-11b-vision-preview" : "llama-3.2-90b-vision-preview") : "llama-3.3-70b-versatile";
+            
+            const completion = await callGroqAPI({
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { 
+                        role: "user", 
+                        content: imageBase64 ? [
                             { type: "text", text: `Solve this problem: ${problem}` },
                             { type: "image_url", image_url: { url: imageBase64 } }
-                          ]
-                        }
-                    ],
-                    model: "llama-3.2-11b-vision-preview",
-                    temperature: 0,
-                    max_tokens: 2048
-                });
-                return fallback.choices[0]?.message?.content || "Nažalost, rešenje nije generisano.";
-            } catch (innerErr) {
-                throw new Error("Svi AI modeli su trenutno zauzeti. Pokušajte ponovo za minut.");
+                        ] : `Solve: ${problem}`
+                    }
+                ],
+                model: modelId,
+                temperature: 0,
+                max_tokens: 2048
+            });
+
+            return completion.choices[0]?.message?.content || "Greška pri generisanju.";
+        } catch (err: any) {
+            lastErr = err.message;
+            if (err.message.includes('429') || err.message.includes('Rate Limit') || err.message.includes('busy')) {
+                // Wait 2 seconds before retry
+                await new Promise(r => setTimeout(r, 2000));
+                continue;
             }
+            throw err;
         }
-        throw new Error(`Greška pri rešavanju: ${err?.message}`);
     }
+    throw new Error(`Nažalost, AI serveri su preopterećeni. Detalji: ${lastErr}`);
 };
