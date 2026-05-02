@@ -1,5 +1,7 @@
 import React from 'react';
-import { InlineMath, BlockMath } from 'react-katex';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { motion } from 'framer-motion';
 import 'katex/dist/katex.min.css';
 import { cn } from '../utils/cn';
@@ -9,103 +11,97 @@ interface MathRendererProps {
 }
 
 export const MathRenderer = ({ text }: MathRendererProps) => {
-  const processContent = (content: string) => {
-    // Step 1: Normalize all possible LaTeX delimiters to standard $$ (block) and $ (inline)
-    let normalized = content
-      .replace(/\\\[/g, '$$$$')
-      .replace(/\\\]/g, '$$$$')
-      .replace(/\\\(/g, '$')
-      .replace(/\\\)/g, '$');
+  // Step 1: Pre-process text to ensure consistent delimiters for ReactMarkdown
+  // Also fix common AI formatting artifacts like "d ot" or missing backslashes
+  const processedText = text
+    .replace(/d\s+ot/g, 'cdot')
+    .replace(/\\\[/g, '$$$$')
+    .replace(/\\\]/g, '$$$$')
+    .replace(/\\\(/g, '$')
+    .replace(/\\\)/g, '$');
 
-    // Split by sections starting with ## (AI structured headers)
-    const sections = normalized.split(/(?=##\s+)/g);
-
-    return sections.map((section, sectionIdx) => {
-      const isHeader = section.trim().startsWith('##');
-      
-      // Split section into block math and text/inline math
-      const blocks = section.split(/(\$\$.*?\$\$)/gs);
-
-      return (
-        <motion.div 
-          key={sectionIdx}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: sectionIdx * 0.1 }}
-          className={cn(
-            "section-container mb-8 last:mb-0",
-            isHeader ? "bg-white/5 border border-white/10 p-6 rounded-[2rem] shadow-sm" : ""
-          )}
-        >
-          {blocks.map((block, i) => {
-            if (block.startsWith('$$') && block.endsWith('$$')) {
-              const math = block.slice(2, -2).trim();
-              if (!math) return null;
-              return (
-                <div key={i} className="my-8 overflow-x-auto no-scrollbar py-2 text-center scale-110 lg:scale-125 origin-center">
-                  <BlockMath math={math} />
-                </div>
-              );
-            }
-
-            // Handle inline math $...$ and text
-            const inlines = block.split(/(\$.*?\$)/g);
-            return (
-              <div key={i} className="inline-content leading-relaxed text-lg">
-                {inlines.map((part, j) => {
-                  if (part.startsWith('$') && part.endsWith('$')) {
-                    const math = part.slice(1, -1).trim();
-                    if (!math) return null;
-                    return <InlineMath key={j} math={math} />;
-                  }
-
-                  // Handle headers and bold text
-                  return part.split('\n').map((line, k) => {
-                    const cleanLine = line.trim();
-                    if (!cleanLine) return k > 0 ? <br key={k} /> : null;
-
-                    // Header check
-                    if (cleanLine.startsWith('##')) {
-                      return (
-                        <h3 
-                          key={k} 
-                          className="text-xl sm:text-2xl font-black mb-6 flex items-center gap-3 text-white italic tracking-tight"
-                        >
-                          <span className="w-2 h-8 bg-white rounded-full" />
-                          {cleanLine.replace(/^##\s*/, '')}
-                        </h3>
-                      );
-                    }
-
-                    // Bold check
-                    const boldParts = line.split(/(\*\*.*?\*\*)/g);
-                    return (
-                      <span key={k} className="block mb-2 last:mb-0">
-                        {boldParts.map((bp, bpi) => {
-                          if (bp.startsWith('**') && bp.endsWith('**')) {
-                            return (
-                              <strong key={bpi} className="font-black text-white px-1">
-                                {bp.slice(2, -2)}
-                              </strong>
-                            );
-                          }
-                          return bp;
-                        })}
-                      </span>
-                    );
-                  });
-                })}
-              </div>
-            );
-          })}
-        </motion.div>
-      );
-    });
-  };
+  // Step 2: Split into sections based on ## headers to apply card styling
+  const sections = processedText.split(/(?=##\s+)/g);
 
   return (
-    <div className="math-renderer-enhanced space-y-6">
-      {processContent(text)}
+    <div className="math-renderer-modern space-y-8">
+      {sections.map((section, idx) => {
+        const isHeaderSection = section.trim().startsWith('##');
+        
+        return (
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.1, duration: 0.5 }}
+            className={cn(
+              "math-section group transition-all duration-300",
+              isHeaderSection 
+                ? "bg-white/[0.03] backdrop-blur-sm border border-white/10 p-8 rounded-[2.5rem] shadow-2xl hover:bg-white/[0.05] hover:border-white/20" 
+                : "px-4"
+            )}
+          >
+            <ReactMarkdown
+              remarkPlugins={[remarkMath]}
+              rehypePlugins={[rehypeKatex]}
+              components={{
+                h2: ({ children }) => (
+                  <h2 className="text-2xl sm:text-3xl font-black mb-8 flex items-center gap-4 text-white italic tracking-tighter uppercase">
+                    <span className="w-1.5 h-10 bg-gradient-to-b from-blue-400 to-indigo-600 rounded-full" />
+                    {children}
+                  </h2>
+                ),
+                h3: ({ children }) => (
+                  <h3 className="text-xl font-bold mb-4 text-white/90 flex items-center gap-3">
+                    <span className="w-1 h-6 bg-white/20 rounded-full" />
+                    {children}
+                  </h3>
+                ),
+                p: ({ children }) => (
+                  <p className="text-white/70 leading-relaxed text-lg mb-4 last:mb-0 font-medium">
+                    {children}
+                  </p>
+                ),
+                ul: ({ children }) => (
+                  <ul className="space-y-3 mb-6 ml-4">
+                    {children}
+                  </ul>
+                ),
+                li: ({ children }) => (
+                  <li className="flex gap-3 text-white/70 text-lg">
+                    <span className="text-blue-400 mt-1.5">•</span>
+                    <span>{children}</span>
+                  </li>
+                ),
+                strong: ({ children }) => (
+                  <strong className="font-black text-white bg-white/5 px-1.5 py-0.5 rounded-md">
+                    {children}
+                  </strong>
+                ),
+                // Custom math blocks styling
+                div: ({ className, children }) => {
+                  if (className?.includes('math-display')) {
+                    return (
+                      <div className="my-10 py-6 px-4 bg-white/[0.02] border-y border-white/5 overflow-x-auto no-scrollbar text-center scale-110 sm:scale-125 transition-transform origin-center hover:scale-130">
+                        {children}
+                      </div>
+                    );
+                  }
+                  return <div className={className}>{children}</div>;
+                },
+                span: ({ className, children }) => {
+                  if (className?.includes('math-inline')) {
+                    return <span className="inline-block mx-1 text-white font-bold">{children}</span>;
+                  }
+                  return <span className={className}>{children}</span>;
+                }
+              }}
+            >
+              {section}
+            </ReactMarkdown>
+          </motion.div>
+        );
+      })}
     </div>
   );
 };

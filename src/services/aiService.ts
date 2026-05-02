@@ -242,20 +242,19 @@ export const solveProblem = async (problem: string, imageBase64?: string): Promi
 
     STRICT FORMATTING GUIDELINES:
     1. LaTeX DELIMITERS: 
-       - Inline Math: Wrap in exactly one pair of dollar signs: $ ... $. Use this for variables ($x$), simple terms ($\sqrt{2}$), and small fractions.
+       - Inline Math: Wrap in exactly one pair of dollar signs: $ ... $.
        - Block Math: Wrap in exactly two pairs of dollar signs ON SEPARATE LINES:
          $$
          \text{formula here}
          $$
-         Use this for complex fractions, integrals, large matrices, and final results.
-    2. USE LaTeX FOR EVERYTHING: Even simple symbols like +, -, =, roots, and powers must be in LaTeX.
+    2. USE LaTeX FOR EVERYTHING: Even simple symbols like +, -, =, roots, and powers must be in LaTeX. NEVER use raw unicode characters like √ or −.
     3. STRUCTURE: Use exactly these Markdown headers for sections:
        ## 🎯 Analiza zadatka
        ## 📜 Ključne formule i zakoni
        ## ✍️ Detaljno rešavanje korak-po-korak
        ## 🏁 Finalni odgovor i provera
-    4. LANGUAGE: Respond EXCLUSIVELY in the same language as the user's input (Serbian/Croatian/Bosnian if input is such).
-    5. VISUALS: Use LaTeX \text{} for annotations inside math blocks to keep them aligned.`;
+    4. LANGUAGE: Respond EXCLUSIVELY in the same language as the user's input.
+    5. VISUALS: Ensure all complex fractions and roots are wrapped in braces {} correctly to avoid rendering errors.`;
     
     let problemText = problem;
 
@@ -269,7 +268,7 @@ export const solveProblem = async (problem: string, imageBase64?: string): Promi
                     messages: [
                         { 
                           role: "system", 
-                          content: "You are a professional mathematical OCR engine. Transcribe the image into LaTeX. Be extremely careful with nested fractions, square roots, and subscripts. Output ONLY the transcribed LaTeX problem. Do not solve." 
+                          content: "You are a professional mathematical OCR engine. Transcribe the image into LaTeX. Be extremely careful with nested fractions, square roots, and subscripts. Output ONLY the transcribed LaTeX problem. Do not solve. Use standard LaTeX symbols (e.g., \\sqrt{}, \\frac{}{}, \\cdot)." 
                         },
                         { role: "user", content: [
                             { type: "text", text: "Transcribe this problem into perfect LaTeX:" },
@@ -296,9 +295,9 @@ export const solveProblem = async (problem: string, imageBase64?: string): Promi
         const completion = await callGroqAPI({
             messages: [
                 { role: "system", content: systemPrompt },
-                { role: "user", content: `Solve this problem following the strict formatting rules:\n\n${problemText}` }
+                { role: "user", content: `Solve this problem following the strict formatting rules. Ensure all mathematical expressions are perfectly formatted in LaTeX for rendering:\n\n${problemText}` }
             ],
-            model: "llama-3.3-70b-versatile", // Using a reliable high-reasoning model
+            model: "llama-3.3-70b-versatile",
             temperature: 0,
         });
         
