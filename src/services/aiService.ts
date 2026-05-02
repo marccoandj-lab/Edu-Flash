@@ -16,8 +16,8 @@ export interface AIResponseBatch {
 }
 
 const VISION_MODELS = [
-    "meta-llama/llama-3.2-90b-vision-preview",
-    "meta-llama/llama-3.2-11b-vision-preview"
+    "llama-3.2-11b-vision-preview",
+    "llama-3.2-90b-vision-preview"
 ];
 
 const callGroqAPI = async (payload: any) => {

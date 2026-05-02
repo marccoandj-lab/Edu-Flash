@@ -65,8 +65,9 @@ export default async function handler(req: any, res: any) {
     // Ako svi ključevi puknu
     console.error('Svi API ključevi su iscrpljeni ili nevažeći. Poslednja greška:', lastError);
     return res.status(500).json({ 
-      error: 'Trenutno su svi AI resursi iscrpljeni. Molimo pokušajte ponovo kasnije.',
-      details: lastError?.message || 'Nepoznata greška'
+      error: 'Trenutno su svi AI resursi iscrpljeni (Rate Limit). Molimo pokušajte ponovo za minut.',
+      details: lastError?.message || 'Nepoznata greška',
+      code: lastError?.status || 500
     });
 
   } catch (error: any) {
