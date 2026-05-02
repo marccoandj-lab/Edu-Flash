@@ -16,8 +16,8 @@ export interface AIResponseBatch {
 }
 
 const VISION_MODELS = [
-    "llama-3.2-90b-vision-preview",
-    "llama-3.2-11b-vision-preview"
+    "meta-llama/llama-3.2-90b-vision-preview",
+    "meta-llama/llama-3.2-11b-vision-preview"
 ];
 
 const callGroqAPI = async (payload: any) => {
@@ -260,27 +260,41 @@ export const solveProblem = async (problem: string, imageBase64?: string): Promi
 
     if (imageBase64) {
         let extracted = "";
+        let ocrError = null;
+
         for (const modelId of VISION_MODELS) {
             try {
                 const ocrCompletion = await callGroqAPI({
                     messages: [
-                        { 
-                          role: "system", 
-                          content: "You are a professional Math OCR Engine. Transcribe the mathematical problem from the image into clean, standard LaTeX. \nRules:\n1. Output ONLY the LaTeX code.\n2. Do NOT include any conversational text.\n3. Use $$ for display blocks.\n4. Be extremely precise with exponents, subscripts, and fractions." 
-                        },
                         { role: "user", content: [
-                            { type: "text", text: "Transcribe the math problem from this image into LaTeX. Output only the LaTeX." },
+                            { 
+                              type: "text", 
+                              text: "You are a professional Math OCR Engine. Transcribe the mathematical problem from this image into clean, standard LaTeX. Output ONLY the LaTeX code. No conversation. No explanations. Just the math formula(s)." 
+                            },
                             { type: "image_url", image_url: { url: imageBase64 } }
                         ]}
                     ],
                     model: modelId,
                     temperature: 0,
+                    max_tokens: 1024
                 });
-                extracted = ocrCompletion.choices[0]?.message?.content || "";
-                if (extracted) break;
-            } catch (e: any) {}
+                
+                const content = ocrCompletion.choices[0]?.message?.content?.trim() || "";
+                if (content && content.length > 2) {
+                    extracted = content;
+                    break;
+                }
+            } catch (e: any) {
+                ocrError = e.message;
+                console.error(`OCR failed for model ${modelId}:`, e);
+            }
         }
-        problemText = `[ZADATAK]: ${extracted}\n\n[KONTEKST]: ${problem}`;
+
+        if (!extracted) {
+            throw new Error(`Nažalost, nisam uspeo da pročitam zadatak sa slike. ${ocrError ? `Detalji: ${ocrError}` : "Pokušajte sa jasnijom slikom ili unesite zadatak ručno."}`);
+        }
+
+        problemText = `ZADATAK SA SLIKE (LaTeX): ${extracted}\n\nDODATNI OPIS/KONTEKST: ${problem}`;
     }
 
     try {
