@@ -231,38 +231,48 @@ export const generateQuizFromContent = async (text: string): Promise<any[]> => {
 };
 
 export const solveProblem = async (problem: string, imageBase64?: string): Promise<string> => {
-    const systemPrompt = `You are an elite Academic Solver with a PhD in Mathematics and Physics.
-    Your goal is to provide 100% accurate, rigorous, and verified solutions.
+    const systemPrompt = `You are an elite Academic Solver with a PhD in Mathematics, Physics, and Chemistry.
+    Your goal is to provide 100% accurate, rigorous, and visually stunning solutions.
 
     REASONING PROCESS:
-    1. Internal Monologue: First, identify the core problem type.
-    2. Verification: Double-check every formula and calculation.
-    3. Formatting: Use LaTeX for all mathematical expressions.
+    1. Analysis: Identify core concepts, constraints, and variables.
+    2. Transcription Verification: If OCR was used, cross-reference symbols to ensure they make mathematical sense.
+    3. Step-by-Step: Derivate the solution with extreme clarity.
+    4. Verification: Plug the answer back in to confirm correctness.
 
-    STRICT GUIDELINES:
-    1. DELIMITERS: 
-       - Inline Math: Wrap in exactly one pair of dollar signs, like $x^2$. 
-       - Block Math: Wrap in exactly two pairs of dollar signs on separate lines, like $$ \frac{a}{b} $$.
-    2. LANGUAGE: Respond EXCLUSIVELY in the same language as the user's input.
-    3. STRUCTURE:
-       - ## 🎯 Analiza zadatka (Problem Breakdown)
-       - ## 📜 Ključne formule i zakoni (Principles & Formulas)
-       - ## ✍️ Detaljno rešavanje korak-po-korak (Step-by-Step Derivation)
-       - ## 🏁 Finalni odgovor i provera (Final Answer & Verification)
-    4. ACCURACY: If the problem is ambiguous, state your assumptions clearly.`;
+    STRICT FORMATTING GUIDELINES:
+    1. LaTeX DELIMITERS: 
+       - Inline Math: Wrap in exactly one pair of dollar signs: $ ... $. Use this for variables ($x$), simple terms ($\sqrt{2}$), and small fractions.
+       - Block Math: Wrap in exactly two pairs of dollar signs ON SEPARATE LINES:
+         $$
+         \text{formula here}
+         $$
+         Use this for complex fractions, integrals, large matrices, and final results.
+    2. USE LaTeX FOR EVERYTHING: Even simple symbols like +, -, =, roots, and powers must be in LaTeX.
+    3. STRUCTURE: Use exactly these Markdown headers for sections:
+       ## 🎯 Analiza zadatka
+       ## 📜 Ključne formule i zakoni
+       ## ✍️ Detaljno rešavanje korak-po-korak
+       ## 🏁 Finalni odgovor i provera
+    4. LANGUAGE: Respond EXCLUSIVELY in the same language as the user's input (Serbian/Croatian/Bosnian if input is such).
+    5. VISUALS: Use LaTeX \text{} for annotations inside math blocks to keep them aligned.`;
     
     let problemText = problem;
 
     if (imageBase64) {
         let extracted = "";
         let lastError = "";
+        // Accuracy Priority: Use the best vision model and provide context
         for (const modelId of VISION_MODELS) {
             try {
                 const ocrCompletion = await callGroqAPI({
                     messages: [
-                        { role: "system", content: "You are an expert OCR assistant. Transcribe the mathematical/logical problem from the image EXACTLY as it appears. Include symbols and formulas. Do not solve it." },
+                        { 
+                          role: "system", 
+                          content: "You are a professional mathematical OCR engine. Transcribe the image into LaTeX. Be extremely careful with nested fractions, square roots, and subscripts. Output ONLY the transcribed LaTeX problem. Do not solve." 
+                        },
                         { role: "user", content: [
-                            { type: "text", text: "Transcribe this problem exactly:" },
+                            { type: "text", text: "Transcribe this problem into perfect LaTeX:" },
                             { type: "image_url", image_url: { url: imageBase64 } }
                         ]}
                     ],
@@ -273,30 +283,27 @@ export const solveProblem = async (problem: string, imageBase64?: string): Promi
                 if (extracted) break;
             } catch (e: any) {
                 lastError = e?.message || String(e);
-                console.warn(`Vision model ${modelId} failed:`, lastError);
             }
         }
         
         if (!extracted && !problem) {
-            throw new Error(`AI nije mogao da pročita sliku. Greška: ${lastError || "Nepoznata greška"}. Molimo probajte da prekucate zadatak ili pošaljete jasniju sliku.`);
+            throw new Error(`AI nije mogao da pročita sliku. Molimo probajte da prekucate zadatak.`);
         }
-        problemText = `[Zadatak sa slike]: ${extracted}\n\n[Dodatni kontekst korisnika]: ${problem}`;
+        problemText = `[Transcribed Problem]: ${extracted}\n\n[User Context]: ${problem}`;
     }
 
-    // Step 2: Solve the extracted text using the 2026 Flagship Reasoning Model
     try {
         const completion = await callGroqAPI({
             messages: [
                 { role: "system", content: systemPrompt },
-                { role: "user", content: problemText }
+                { role: "user", content: `Solve this problem following the strict formatting rules:\n\n${problemText}` }
             ],
-            model: "openai/gpt-oss-120b",
+            model: "llama-3.3-70b-versatile", // Using a reliable high-reasoning model
             temperature: 0,
         });
         
         return completion.choices[0]?.message?.content || "Nažalost, nisam uspeo da generišem rešenje.";
     } catch (err: any) {
-        console.error("Solver error:", err);
-        throw new Error(`Greška pri rešavanju zadatka (Model Error). Detalji: ${err?.message || "Nepoznata greška"}`);
+        throw new Error(`Greška pri rešavanju zadatka. Detalji: ${err?.message}`);
     }
 };
