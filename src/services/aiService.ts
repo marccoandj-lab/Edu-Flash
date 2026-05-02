@@ -16,7 +16,8 @@ export interface AIResponseBatch {
 }
 
 const VISION_MODELS = [
-    "meta-llama/llama-4-scout-17b-16e-instruct"
+    "llama-3.2-90b-vision-preview",
+    "llama-3.2-11b-vision-preview"
 ];
 
 const callGroqAPI = async (payload: any) => {
@@ -243,14 +244,17 @@ export const solveProblem = async (problem: string, imageBase64?: string): Promi
     STRICT FORMATTING RULES:
     1. LaTeX ONLY: Use standard LaTeX for ALL mathematical symbols.
        - Inline: $ ... $
-       - Block: $$ ... $$ (on separate lines)
-    2. NO UNICODE: Never use √, /, −, or other unicode math symbols. Use \\sqrt{}, \\frac{}{}, -, etc.
-    3. STRUCTURE:
+       - Block: $$ ... $$ (always on separate lines)
+       - Use \\dfrac instead of \\frac for better readability in complex expressions.
+    2. NO UNICODE: Never use √, /, −, or other unicode math symbols. Use \\sqrt{}, \\dfrac{}{}, -, etc.
+    3. ALIGNED BLOCKS: For multi-step calculations, use $$ \\begin{aligned} ... \\end{aligned} $$.
+    4. STRUCTURE:
        ## 🎯 Analiza zadatka
        ## 📜 Ključne formule
        ## ✍️ Postupak rešavanja (Detaljno objašnjeno)
        ## 🏁 Rezultat i provera
-    4. ACCURACY: Precision is more important than speed. If you are not 100% sure, explain your reasoning and potential edge cases.`;
+    5. ACCURACY: Precision is more important than speed. If you are not 100% sure, explain your reasoning and potential edge cases.
+    6. LANGUAGE: Respond in the SAME LANGUAGE as the problem description (e.g., if problem is in Serbian, respond in Serbian).`;
     
     let problemText = problem;
 
@@ -262,10 +266,10 @@ export const solveProblem = async (problem: string, imageBase64?: string): Promi
                     messages: [
                         { 
                           role: "system", 
-                          content: "Professional OCR Engine. Transcribe the image into standard LaTeX. No text, just the math. Be careful with nested fractions and roots." 
+                          content: "You are a professional Math OCR Engine. Transcribe the mathematical problem from the image into clean, standard LaTeX. \nRules:\n1. Output ONLY the LaTeX code.\n2. Do NOT include any conversational text.\n3. Use $$ for display blocks.\n4. Be extremely precise with exponents, subscripts, and fractions." 
                         },
                         { role: "user", content: [
-                            { type: "text", text: "Transcribe to LaTeX:" },
+                            { type: "text", text: "Transcribe the math problem from this image into LaTeX. Output only the LaTeX." },
                             { type: "image_url", image_url: { url: imageBase64 } }
                         ]}
                     ],

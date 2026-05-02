@@ -105,3 +105,36 @@ input {
 input::placeholder {
     color: var(--text-muted);
 }
+
+/* KaTeX Overlap & Spacing Fixes */
+.katex-display {
+    margin: 1.5em 0 !important;
+    padding: 0.5em 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    vertical-align: middle;
+}
+
+.katex {
+    font-size: 1.1em !important;
+    line-height: 1.2;
+    text-rendering: auto;
+}
+
+.katex .base {
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
+
+/* Ensure fractions and roots have enough space */
+.katex .mord + .mop, 
+.katex .mop + .mord,
+.katex .mord + .mord {
+    margin-left: 0.1em;
+}
+
+.math-renderer-clean .katex-html {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.5rem 0;
+}
