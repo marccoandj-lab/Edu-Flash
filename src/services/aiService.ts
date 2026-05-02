@@ -231,47 +231,41 @@ export const generateQuizFromContent = async (text: string): Promise<any[]> => {
 };
 
 export const solveProblem = async (problem: string, imageBase64?: string): Promise<string> => {
-    const systemPrompt = `You are an elite Academic Solver with a PhD in Mathematics, Physics, and Chemistry.
-    Your goal is to provide 100% accurate, rigorous, and visually stunning solutions.
+    const systemPrompt = `You are a world-class Mathematical Reasoning Engine.
+    Your goal is to provide 100% mathematically correct solutions with crystal-clear formatting.
 
-    REASONING PROCESS:
-    1. Analysis: Identify core concepts, constraints, and variables.
-    2. Transcription Verification: If OCR was used, cross-reference symbols to ensure they make mathematical sense.
-    3. Step-by-Step: Derivate the solution with extreme clarity.
-    4. Verification: Plug the answer back in to confirm correctness.
+    REASONING PROTOCOL:
+    1. ANALYZE: Break down the input. Identify exactly what is being asked.
+    2. SOLVE TWICE: Solve the problem using two different mental approaches.
+    3. VERIFY: Cross-check the two results. If they differ, find the error.
+    4. FINAL CHECK: Plug the answer back into the original problem to ensure it works perfectly.
 
-    STRICT FORMATTING GUIDELINES:
-    1. LaTeX DELIMITERS: 
-       - Inline Math: Wrap in exactly one pair of dollar signs: $ ... $.
-       - Block Math: Wrap in exactly two pairs of dollar signs ON SEPARATE LINES:
-         $$
-         \text{formula here}
-         $$
-    2. USE LaTeX FOR EVERYTHING: Even simple symbols like +, -, =, roots, and powers must be in LaTeX. NEVER use raw unicode characters like √ or −.
-    3. STRUCTURE: Use exactly these Markdown headers for sections:
+    STRICT FORMATTING RULES:
+    1. LaTeX ONLY: Use standard LaTeX for ALL mathematical symbols.
+       - Inline: $ ... $
+       - Block: $$ ... $$ (on separate lines)
+    2. NO UNICODE: Never use √, /, −, or other unicode math symbols. Use \\sqrt{}, \\frac{}{}, -, etc.
+    3. STRUCTURE:
        ## 🎯 Analiza zadatka
-       ## 📜 Ključne formule i zakoni
-       ## ✍️ Detaljno rešavanje korak-po-korak
-       ## 🏁 Finalni odgovor i provera
-    4. LANGUAGE: Respond EXCLUSIVELY in the same language as the user's input.
-    5. VISUALS: Ensure all complex fractions and roots are wrapped in braces {} correctly to avoid rendering errors.`;
+       ## 📜 Ključne formule
+       ## ✍️ Postupak rešavanja (Detaljno objašnjeno)
+       ## 🏁 Rezultat i provera
+    4. ACCURACY: Precision is more important than speed. If you are not 100% sure, explain your reasoning and potential edge cases.`;
     
     let problemText = problem;
 
     if (imageBase64) {
         let extracted = "";
-        let lastError = "";
-        // Accuracy Priority: Use the best vision model and provide context
         for (const modelId of VISION_MODELS) {
             try {
                 const ocrCompletion = await callGroqAPI({
                     messages: [
                         { 
                           role: "system", 
-                          content: "You are a professional mathematical OCR engine. Transcribe the image into LaTeX. Be extremely careful with nested fractions, square roots, and subscripts. Output ONLY the transcribed LaTeX problem. Do not solve. Use standard LaTeX symbols (e.g., \\sqrt{}, \\frac{}{}, \\cdot)." 
+                          content: "Professional OCR Engine. Transcribe the image into standard LaTeX. No text, just the math. Be careful with nested fractions and roots." 
                         },
                         { role: "user", content: [
-                            { type: "text", text: "Transcribe this problem into perfect LaTeX:" },
+                            { type: "text", text: "Transcribe to LaTeX:" },
                             { type: "image_url", image_url: { url: imageBase64 } }
                         ]}
                     ],
@@ -280,24 +274,18 @@ export const solveProblem = async (problem: string, imageBase64?: string): Promi
                 });
                 extracted = ocrCompletion.choices[0]?.message?.content || "";
                 if (extracted) break;
-            } catch (e: any) {
-                lastError = e?.message || String(e);
-            }
+            } catch (e: any) {}
         }
-        
-        if (!extracted && !problem) {
-            throw new Error(`AI nije mogao da pročita sliku. Molimo probajte da prekucate zadatak.`);
-        }
-        problemText = `[Transcribed Problem]: ${extracted}\n\n[User Context]: ${problem}`;
+        problemText = `[ZADATAK]: ${extracted}\n\n[KONTEKST]: ${problem}`;
     }
 
     try {
         const completion = await callGroqAPI({
             messages: [
                 { role: "system", content: systemPrompt },
-                { role: "user", content: `Solve this problem following the strict formatting rules. Ensure all mathematical expressions are perfectly formatted in LaTeX for rendering:\n\n${problemText}` }
+                { role: "user", content: `Solve this problem with absolute precision. Use the Reasoning Protocol to ensure the answer is correct:\n\n${problemText}` }
             ],
-            model: "llama-3.3-70b-versatile",
+            model: "llama-3.3-70b-versatile", // Using a reliable high-reasoning model
             temperature: 0,
         });
         
